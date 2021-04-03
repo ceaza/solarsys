@@ -98,8 +98,9 @@ while True:
     send_dict['batterywatts'] = send_dict['batteryamps'] * send_dict['batteryvolts']
     send_dict['pvAmps1'] = send_dict['pv_input_current_battery']
     
-    send_dict['gridwatts'] = 0.0 if send_dict['batterywatts']< 0.0 \
-                             else send_dict['loadwatts'] + send_dict['batterywatts'] - send_dict['pvwatts']
+    send_dict['gridwatts'] = send_dict['loadwatts'] + send_dict['batterywatts'] - send_dict['pvwatts']
+    send_dict['gridwatts'] = 0.0 if send_dict['gridwatts'] < 0.0 \
+                             else send_dict['gridwatts']
     send_dict['SolarWatts'] = send_dict['loadwatts'] - send_dict['gridwatts']
     print(res[19])
     send_all_data(send_dict)
