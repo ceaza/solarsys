@@ -8,7 +8,7 @@ import time
 import os, sys
 import crcmod
 import json
-from crc16 import crc16xmodem
+
 
 apikey = "5501428544958e9fc4827004e36922e4"
 server = 'centurionsolar.co.za'
