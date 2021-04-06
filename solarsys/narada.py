@@ -166,6 +166,19 @@ def get_mapping(data_length):
               }
     return mapping
 
+def get_bat_list():
+    bat_list = []
+    for i in range(0,10):
+        print(i)
+        ser.write(command(i,1))  # sending command
+        sleep(1)
+        res = ser.read_until('\n')
+        lst = list(res)
+        print(lst)
+        if len(lst)>5:
+            bat_list.append(lst[1])
+    print(bat_list)
+
 
 #def get_data(buf):
 def get_values(buf):
@@ -185,86 +198,86 @@ def get_values(buf):
 
 ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1.5)
 
+if __name__ == "main":
+    print(ser.name)
+    print(ser)
+    lines = []
+    counter = 0
+    bat_id = 1
 
-print(ser.name)
-print(ser)
-lines = []
-counter = 0
-bat_id = 1
+    text = "b''"
+    res = ''
+    lines = []
+    counter = 0
+    bat_id=0
 
-text = "b''"
-res = ''
-lines = []
-counter = 0
-bat_id=0
+    while True:
+        try:
+            bat_id = 0 if bat_id == 5 else bat_id
+            bat_id = 4 if bat_id == 3 else bat_id
+            print('Bat: {}'.format(bat_id))
+            ser.write(command(bat_id,1))
+            sleep(2)
+            #res =ser.readline()
+            res = ser.read_until('\n')
+            text = repr(res)
 
-while True:
-    try:
-        bat_id = 0 if bat_id == 5 else bat_id
-        bat_id = 4 if bat_id == 3 else bat_id
-        print('Bat: {}'.format(bat_id))
-        ser.write(command(bat_id,1))
-        sleep(2)
-        #res =ser.readline()
-        res = ser.read_until('\n')
-        text = repr(res)
+            # print(res)
+            bat_id += 1
+        except serial.SerialException as e:
+            print(e)
 
-        # print(res)
-        bat_id += 1
-    except serial.SerialException as e:
-        print(e)
+        if text!="b''":
+            print()
+            #bat_id += 1
+            #bat_id = 4 if bat_id == 3 else bat_id
+            counter += 1
+            buff = list(res)
+            # print(buff)
+            lst = buff
+            print(len(lst))
+            if len(lst)==90:
+                print(time.ctime(time.time()))
+                emons_dict = get_values(lst[:])
+                print(emons_dict)
+                send_all_data(emons_dict)
+            if len(lst)==92:
+                print(time.ctime(time.time()))
+                emons_dict = get_values(lst[:])
+                print(emons_dict)
+                send_all_data(emons_dict)
+            if len(lst)==55:
+                lst = lst+last_lst
+            if len(lst)==922:
+                print(time.ctime(time.time()))	
+                emons_dict = get_values(lst[5:])
+                send_all_data(emons_dict)
 
-    if text!="b''":
-        print()
-        #bat_id += 1
-        #bat_id = 4 if bat_id == 3 else bat_id
-        counter += 1
-        buff = list(res)
-        # print(buff)
-        lst = buff
-        print(len(lst))
-        if len(lst)==90:
-            print(time.ctime(time.time()))
-            emons_dict = get_values(lst[:])
-            print(emons_dict)
-            send_all_data(emons_dict)
-        if len(lst)==92:
-            print(time.ctime(time.time()))
-            emons_dict = get_values(lst[:])
-            print(emons_dict)
-            send_all_data(emons_dict)
-        if len(lst)==55:
-            lst = lst+last_lst
-        if len(lst)==922:
-            print(time.ctime(time.time()))	
-            emons_dict = get_values(lst[5:])
-            send_all_data(emons_dict)
+    # get battery ids
+    if 0:
+        bat_list = []
+        for i in range(0,10):
+            print(i)
+            ser.write(command(i,1))  # sending command
+            sleep(1)
+            res = ser.read_until('\n')
+            lst = list(res)
+            print(lst)
+            if len(lst)>5:
+                bat_list.append(lst[1])
+        print(bat_list)
 
-# get battery ids
-if 0:
-    bat_list = []
-    for i in range(0,10):
-        print(i)
-        ser.write(command(i,1))  # sending command
-        sleep(1)
+    if 0:
+        ser.write(command(bat_id,1))  # sending command
+        #res = ser.read_until('\n')
         res = ser.readline()
+        sleep(1)
+        #print(res)
         lst = list(res)
         print(lst)
-        if len(lst)>5:
-            bat_list.append(lst[1])
-    print(bat_list)
+        #print(lst)
+        #print(type(lst[3]))
 
-if 0:
-    ser.write(command(bat_id,1))  # sending command
-    #res = ser.read_until('\n')
-    res = ser.readline()
-    sleep(1)
-    #print(res)
-    lst = list(res)
-    print(lst)
-    #print(lst)
-    #print(type(lst[3]))
-
-    emons_dict = get_values(lst[:])
-    print(emons_dict)
-    send_all_data(emons_dict)
+        emons_dict = get_values(lst[:])
+        print(emons_dict)
+        send_all_data(emons_dict)
