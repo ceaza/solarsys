@@ -69,8 +69,7 @@ class Inverter:
         return random.randint(1, 10)
 
 
-
-c =  Value('f',-1)
+c = Value('f',-1)
 
 a = Value('f', 10)
 
@@ -81,15 +80,15 @@ def worker(a,c):
         while True:
             a.acquire(),c.acquire()
             if a.value <= 2:
-                print('Issue Charge Command to Inverter')
+                print('############## Issue Charge Command to Inverter ###########')
                 c.value = float(1)
             if a.value >= 12:
-                print('Issue Discharge Command to Inverter')
+                print('########### Issue Discharge Command to Inverter ###########')
                 c.value = float(-1)           
             print('Inverter Values=',inverter.get_values())
             print ("Inverter knows SOC=",a.value)
             a.release(), c.release()
-            #time.sleep(1)
+            time.sleep(1)
     except Exception as e:
         print(e)
         a.release(),c.release()
