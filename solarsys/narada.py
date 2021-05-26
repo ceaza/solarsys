@@ -50,9 +50,9 @@ class Battery:
 
     def __init__(self):
         try:
-            ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1.5)
+            self.ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1.5)
         except:
-            ser = serial.Serial('/dev/ttyUSB1', 9600, timeout=1.5)
+            self.ser = serial.Serial('/dev/ttyUSB1', 9600, timeout=1.5)
 
     def run(self):
         '''
