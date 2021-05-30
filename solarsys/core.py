@@ -25,7 +25,8 @@ config['NARADA'] = {'device': '/dev/ttyUSB0'
                         }
 
 print(os.getcwd())
-config_file_name = Path('/home/pi/github/solarsys').joinpath('conf.conf')
+user='charles'
+config_file_name = Path(f'/home/{user}/github/solarsys').joinpath('conf.conf')
 with open(config_file_name, 'w') as configfile:
     config.write(configfile)
 config.read(config_file_name)
@@ -65,29 +66,29 @@ class Inverter:
 
 c = Value('f',-1)
 
-a = Value('f', 10)
+soc = Value('f', 10)
 
-def worker(a,c):
+def inverter_service(soc,c):
     inverter = Inverter()
     try:
         name = current_process().name
         while True:
-            a.acquire(),c.acquire()
-            if a.value <= 2:
+            soc.acquire(),c.acquire()
+            if soc.value <= 2:
                 print('############## Issue Charge Command to Inverter ###########')
-                c.value = float(1)
-            if a.value >= 12:
+                soc.value = float(1)
+            if soc.value >= 12:
                 print('########### Issue Discharge Command to Inverter ###########')
                 c.value = float(-1)           
             print('Inverter Values=',inverter.get_values())
-            print ("Inverter knows SOC=",a.value)
-            a.release(), c.release()
+            print ("Inverter knows SOC=",soc.value)
+            soc.release(), c.release()
             time.sleep(1)
     except Exception as e:
         print(e)
-        a.release(),c.release()
+        soc.release(),c.release()
 
-def my_service(az,cz):
+def battery_service(az,cz):
     bat = Battery()
     name = current_process().name
     # print (name,"Starting")
@@ -114,10 +115,10 @@ if __name__ == '__main__':
     #     bat.get_values()
     #     print(bat.val)
 
-    service = Process(name='battery', target=my_service,args=(a,c,))
-    worker_1 = Process(name='Inverter', target=worker,args=(a,c,))
+    run_battery = Process(name='battery', target=battery_service,args=(soc,c,))
+    run_inverter = Process(name='Inverter', target=inverter_service,args=(soc,c,))
     #worker_2 = Process(target=worker,args=(a,)) # use default name
 
-    worker_1.start()
+    run_battery.start()
     #worker_2.start()
-    service.start()
+    run_inverter.start()

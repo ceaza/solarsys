@@ -54,6 +54,30 @@ class Battery:
         except:
             self.ser = serial.Serial('/dev/ttyUSB1', 9600, timeout=1.5)
 
+    def send_receive(self,bat_id):
+        try:
+            self.ser.write(self.command(bat_id,1))
+            sleep(1)
+            res = self.ser.read_until('\n')
+            text = repr(res)
+        except serial.SerialException as e:
+            print(e)
+            return {'e',e}
+
+        if text!="b''":
+            print()
+            buff = list(res)
+            lst = buff   
+            print(len(lst))
+            if len(lst)==90:
+                print(time.ctime(time.time()))
+                emons_dict = self.get_values(lst[:])
+            if len(lst)==92:
+                print(time.ctime(time.time()))
+                emons_dict = self.get_values(lst[:])
+        return emons_dict
+
+
     def run(self):
         '''
         Run the batter service
