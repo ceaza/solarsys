@@ -1,5 +1,6 @@
 
 from pathlib import Path
+from narada import Battery
 import logging
 import configparser
 import time
@@ -25,7 +26,7 @@ config['NARADA'] = {'device': '/dev/ttyUSB0'
                         }
 
 print(os.getcwd())
-user='charles'
+user='pi'
 config_file_name = Path(f'/home/{user}/github/solarsys').joinpath('conf.conf')
 with open(config_file_name, 'w') as configfile:
     config.write(configfile)
@@ -37,7 +38,7 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 logging.debug('App has started')
 
 
-class Battery:
+class Battery1:
     def __init__(self):
         self.max_val = 10
         self.min_val = 0
@@ -75,13 +76,13 @@ def inverter_service(soc,c):
         while True:
             soc.acquire(),c.acquire()
             if soc.value <= 2:
-                print('############## Issue Charge Command to Inverter ###########')
+                # print('############## Issue Charge Command to Inverter ###########')
                 soc.value = float(1)
             if soc.value >= 12:
-                print('########### Issue Discharge Command to Inverter ###########')
+                # print('########### Issue Discharge Command to Inverter ###########')
                 c.value = float(-1)           
-            print('Inverter Values=',inverter.get_values())
-            print ("Inverter knows SOC=",soc.value)
+            #print('Inverter Values=',inverter.get_values())
+            # print ("Inverter knows SOC=",soc.value)
             soc.release(), c.release()
             time.sleep(1)
     except Exception as e:
@@ -97,13 +98,16 @@ def battery_service(az,cz):
     
     while True:
         try:
-            az.acquire(),cz.acquire()
-            bat.get_values(cz.value)
-            az.value=bat.val
-            print()
-            print ("SOC is =",az.value)
-            az.release(),cz.release()
-            time.sleep(2)
+            for batid in [0,1,2,4]:
+                bat_dic=bat.sendreceive(batid)
+                if len(bat_dic)>0:
+                    print(f'Battery SOC:{bat_dic["soc"]}')
+                    bat.send_all_data(bat_dic)
+                    az.acquire(),cz.acquire()
+                    az.value=bat_dic['soc']
+                    print ("Battery Service SOC is =",az.value)
+                    az.release(),cz.release()
+            #time.sleep(1)
         except Exception as e:
             print(e)
             az.release(),cz.release()

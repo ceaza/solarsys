@@ -42,9 +42,8 @@ def send_all_data(ddict):
 xmodem_crc_func = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0x0000, xorOut=0x0000)
 
 def calc_crc(command):
-    global crc
     crc = xmodem_crc_func(command)
-    crc =crc.to_bytes(2,byteorder='big')
+    crc = crc.to_bytes(2,byteorder='big')
     return crc
 
 command = b'QPIGS'

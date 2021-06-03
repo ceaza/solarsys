@@ -54,7 +54,11 @@ class Battery:
         except:
             self.ser = serial.Serial('/dev/ttyUSB1', 9600, timeout=1.5)
 
-    def send_receive(self,bat_id):
+    def sendreceive(self,bat_id):
+        '''
+        Send data command to battery and receive response
+        '''
+        emons_dict = {}
         try:
             self.ser.write(self.command(bat_id,1))
             sleep(1)
@@ -63,7 +67,7 @@ class Battery:
         except serial.SerialException as e:
             print(e)
             return {'e',e}
-
+        
         if text!="b''":
             print()
             buff = list(res)
@@ -282,6 +286,12 @@ class Battery:
 if __name__ == "__main__":
     print('start service')
     bat = Battery()
-    bat.run()
+    while True:
+        for batid in [0,1,2,4]:
+            bat_dic=bat.sendreceive(batid)
+            
+            print(f'Battery SOC:{bat_dic["soc"]}')
+            bat.send_all_data(bat_dic)
+    
 
 
