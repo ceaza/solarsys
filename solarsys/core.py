@@ -1,6 +1,26 @@
+'''
+QPIGS - General enquiry
+QPIRI - Current settings enquiry
+QMOD - Mode enquiry Line, Battery
+
+Output Source Priority
+P0P00 - Set source to Utility first
+POP01 - Set to solar first
+POP02 - Set to solar Solar, Battary, Utility
+
+Charger Source Priority
+PCP00 - Utility first
+PCP01 - Solar first
+PCP02 - Utility and Solar
+PCP03 - Solar only
+
+'''
+
+
 
 from pathlib import Path
 from narada import Battery
+from axpert import Axpert
 import logging
 import configparser
 import time
@@ -71,20 +91,22 @@ soc = Value('f', 10)
 
 def inverter_service(soc,c):
     inverter = Inverter()
+    axpert = Axpert()
     try:
         name = current_process().name
         while True:
+            axpert.run(command='QPIGS')
             soc.acquire(),c.acquire()
-            if soc.value <= 2:
-                # print('############## Issue Charge Command to Inverter ###########')
+            if soc.value <= 75.0:
+                print('############## Must Stop Discharging Battery ###########')
                 soc.value = float(1)
-            if soc.value >= 12:
-                # print('########### Issue Discharge Command to Inverter ###########')
+            if soc.value >= 80.0:
+                print('########### Can Discharge Now ###########')
                 c.value = float(-1)           
             #print('Inverter Values=',inverter.get_values())
-            # print ("Inverter knows SOC=",soc.value)
+            print ("Inverter knows SOC=",soc.value)
             soc.release(), c.release()
-            time.sleep(1)
+            # time.sleep(1)
     except Exception as e:
         print(e)
         soc.release(),c.release()
@@ -101,11 +123,11 @@ def battery_service(az,cz):
             for batid in [0,1,2,4]:
                 bat_dic=bat.sendreceive(batid)
                 if len(bat_dic)>0:
-                    print(f'Battery SOC:{bat_dic["soc"]}')
+                    # print(f'Battery SOC:{bat_dic["soc"]}')
                     bat.send_all_data(bat_dic)
                     az.acquire(),cz.acquire()
                     az.value=bat_dic['soc']
-                    print ("Battery Service SOC is =",az.value)
+                    # print ("Battery Service SOC is =",az.value)
                     az.release(),cz.release()
             #time.sleep(1)
         except Exception as e:

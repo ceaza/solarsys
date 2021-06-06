@@ -88,7 +88,7 @@ class Axpert:
                                     else send_dict['gridwatts']
             send_dict['SolarWatts'] = send_dict['loadwatts'] - send_dict['gridwatts']
         elif command in ['POP00','POP01','POP02','PCP00','PCP01','PCP02','PCP03']:
-            send_dict['ACK'] =res
+            send_dict['ACK'] = res
                          
             
         return send_dict
