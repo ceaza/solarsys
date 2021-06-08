@@ -4,7 +4,7 @@ QPIRI - Current settings enquiry
 QMOD - Mode enquiry Line, Battery
 
 Output Source Priority
-P0P00 - Set source to Utility first
+POP00 - Set source to Utility first
 POP01 - Set to solar first
 POP02 - Set to solar Solar, Battary, Utility
 
@@ -95,14 +95,15 @@ def inverter_service(soc,c):
     try:
         name = current_process().name
         while True:
-            axpert.run(command='QPIGS')
+            res = axpert.run(command='QPIGS')
+            print('charging_on:',res['device_status']['charging_on'])
+            print(res)
             soc.acquire(),c.acquire()
             if soc.value <= 75.0:
                 print('############## Must Stop Discharging Battery ###########')
-                soc.value = float(1)
             if soc.value >= 80.0:
                 print('########### Can Discharge Now ###########')
-                c.value = float(-1)           
+        
             #print('Inverter Values=',inverter.get_values())
             print ("Inverter knows SOC=",soc.value)
             soc.release(), c.release()

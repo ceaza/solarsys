@@ -12,7 +12,7 @@ dev = device_class(port='/dev/hidraw0',protocol='PI30')
 # print(dev.list_commands().keys())
 print(dev.run_command('POP02'))
 
-while True:
+while False:
     print()
     res = dev.run_command('QPIGS')
     for k,v in res.items():
