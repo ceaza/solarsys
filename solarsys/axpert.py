@@ -66,7 +66,7 @@ class Axpert:
         keys = ['SBU_priority','config_changed','SSC_firmware_updated',
                 'load_on','bat_volt_steady','charging_on','scc_changing_on',
                 'ac_on']
-        qpigs_status_dict = {keys[i]:v for i,v in enumerate(list(status))}
+        qpigs_status_dict = {keys[i]:int(v) for i,v in enumerate(list(status))}
         return qpigs_status_dict
         
 
@@ -203,7 +203,7 @@ class Axpert:
 
 if __name__ == '__main__':
     axpert = Axpert()
-    print(axpert.send_and_receive('POP00'))
+    print(axpert.send_and_receive('POP02'))
     output = axpert.run(command='QPIGS')
     print(output)
     #axpert.run(command='QPIRI')

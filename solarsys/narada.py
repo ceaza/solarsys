@@ -158,7 +158,7 @@ class Battery:
         data = json.dumps(sdict)
         data = data.replace('"','')
         data = data.replace(' ','')
-        print(data)
+        # print(data)
         self.send_data(data)          
 
     def check(self,buf):

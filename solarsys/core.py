@@ -21,6 +21,7 @@ PCP03 - Solar only
 from pathlib import Path
 from narada import Battery
 from axpert import Axpert
+from mppsolar import get_device_class
 import logging
 import configparser
 import time
@@ -85,11 +86,14 @@ class Inverter:
         return random.randint(1, 10)
 
 
-c = Value('f',-1)
+c = Value('f',-1.0)
 
-soc = Value('f', 10)
+bsoc = Value('f', 0.0)
 
-def inverter_service(soc,c):
+asoc = Value('f',0.0)
+def inverter_service(bsoc,c,asoc):
+    device_class = get_device_class('mppsolar')
+    dev = device_class(port='/dev/hidraw0',protocol='PI30')
     inverter = Inverter()
     axpert = Axpert()
     try:
@@ -98,27 +102,34 @@ def inverter_service(soc,c):
             res = axpert.run(command='QPIGS')
             print('charging_on:',res['device_status']['charging_on'])
             print(res)
-            soc.acquire(),c.acquire()
-            if soc.value <= 75.0:
+            bsoc.acquire(),c.acquire(),asoc.acquire()
+            if asoc.value <= 77.0 and asoc.value!=0:
                 print('############## Must Stop Discharging Battery ###########')
-            if soc.value >= 80.0:
+                if res['device_status']['charging_on']==0:
+                    #dev.run_command('POP01')
+                    print('POP01 command issued')
+                
+            if asoc.value >= 77.5:
                 print('########### Can Discharge Now ###########')
-        
+                if res['device_status']['charging_on']==1:
+                    print('POP02 command issued')
+                    #print(dev.run_command('POP02'))
             #print('Inverter Values=',inverter.get_values())
-            print ("Inverter knows SOC=",soc.value)
-            soc.release(), c.release()
+            print ("Inverter knows Average SOC = ",asoc.value)
+            print ("Inverter knows Bat SOC = ",bsoc.value)
+            bsoc.release(), c.release(),asoc.release()
             # time.sleep(1)
     except Exception as e:
         print(e)
-        soc.release(),c.release()
+        bsoc.release(),c.release(),asoc.release()
 
-def battery_service(az,cz):
+def battery_service(bat_soc,cz,ave_soc):
     bat = Battery()
     name = current_process().name
     # print (name,"Starting")
     time.sleep(1.0)
     # print (name, "Exiting")
-    
+    bat_dict = {}
     while True:
         try:
             for batid in [0,1,2,4]:
@@ -126,14 +137,17 @@ def battery_service(az,cz):
                 if len(bat_dic)>0:
                     # print(f'Battery SOC:{bat_dic["soc"]}')
                     bat.send_all_data(bat_dic)
-                    az.acquire(),cz.acquire()
-                    az.value=bat_dic['soc']
+                    bat_soc.acquire(),cz.acquire(),ave_soc.acquire()
+                    bat_soc.value = bat_dic['soc']
+                    bat_dict[batid] = bat_dic['soc']
+                    ave_soc.value = sum(bat_dict.values())/float(len(bat_dict))
+                    print(bat_dict)
                     # print ("Battery Service SOC is =",az.value)
-                    az.release(),cz.release()
+                    bat_soc.release(),cz.release(),ave_soc.release()
             #time.sleep(1)
         except Exception as e:
             print(e)
-            az.release(),cz.release()
+            bat_soc.release(),cz.release(),ave_soc.release()
 
 if __name__ == '__main__':
     #Process(target=worker).start()
@@ -142,8 +156,8 @@ if __name__ == '__main__':
     #     bat.get_values()
     #     print(bat.val)
 
-    run_battery = Process(name='battery', target=battery_service,args=(soc,c,))
-    run_inverter = Process(name='Inverter', target=inverter_service,args=(soc,c,))
+    run_battery = Process(name='battery', target=battery_service,args=(asoc,c,bsoc,))
+    run_inverter = Process(name='Inverter', target=inverter_service,args=(asoc,c,bsoc,))
     #worker_2 = Process(target=worker,args=(a,)) # use default name
 
     run_battery.start()
