@@ -103,17 +103,17 @@ def inverter_service(bsoc,c,asoc):
             print('charging_on:',res['device_status']['charging_on'])
             print(res)
             bsoc.acquire(),c.acquire(),asoc.acquire()
-            if asoc.value <= 77.0 and asoc.value!=0:
+            if asoc.value <= 75.0 and asoc.value!=0:
                 print('############## Must Stop Discharging Battery ###########')
-                if res['device_status']['charging_on']==0:
-                    #dev.run_command('POP01')
+                if res['device_status']['charging_on']==0: #scc_changing_on
+                    dev.run_command('POP01')
                     print('POP01 command issued')
                 
             if asoc.value >= 77.5:
                 print('########### Can Discharge Now ###########')
                 if res['device_status']['charging_on']==1:
                     print('POP02 command issued')
-                    #print(dev.run_command('POP02'))
+                    print(dev.run_command('POP02'))
             #print('Inverter Values=',inverter.get_values())
             print ("Inverter knows Average SOC = ",asoc.value)
             print ("Inverter knows Bat SOC = ",bsoc.value)
