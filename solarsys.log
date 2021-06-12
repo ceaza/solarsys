@@ -1,0 +1,55 @@
+2021-06-12 15:35:47:DEBUG:App has started
+2021-06-12 15:35:47:DEBUG:__init__ args ()
+2021-06-12 15:35:47:DEBUG:__init__ kwargs {'port': '/dev/hidraw0', 'protocol': 'PI30'}
+2021-06-12 15:35:47:DEBUG:port matches hidraw
+2021-06-12 15:35:47:INFO:Using hidrawio for communications
+2021-06-12 15:35:47:DEBUG:Protocol PI30
+2021-06-12 15:35:47:DEBUG:__init__ name None, port <mppsolar.io.hidrawio.HIDRawIO object at 0x755e1a30>, protocol <mppsolar.protocols.pi30.pi30 object at 0x754b5df0>
+2021-06-12 15:35:48:DEBUG:Grid charging_on:0
+2021-06-12 15:35:48:DEBUG:Solar charging on:1
+2021-06-12 15:35:48:DEBUG:Solar watts:448.0
+2021-06-12 15:35:49:DEBUG:Grid charging_on:0
+2021-06-12 15:35:49:DEBUG:Solar charging on:1
+2021-06-12 15:35:49:DEBUG:Solar watts:452.0
+2021-06-12 15:35:50:DEBUG:Grid charging_on:0
+2021-06-12 15:35:50:DEBUG:Solar charging on:1
+2021-06-12 15:35:50:DEBUG:Solar watts:464.0
+2021-06-12 15:35:51:DEBUG:Grid charging_on:0
+2021-06-12 15:35:51:DEBUG:Solar charging on:1
+2021-06-12 15:35:51:DEBUG:Solar watts:467.0
+2021-06-12 15:35:51:DEBUG:Grid charging_on:0
+2021-06-12 15:35:51:DEBUG:Solar charging on:1
+2021-06-12 15:35:51:DEBUG:Solar watts:452.0
+2021-06-12 15:35:52:DEBUG:Grid charging_on:0
+2021-06-12 15:35:52:DEBUG:Solar charging on:1
+2021-06-12 15:35:52:DEBUG:Solar watts:465.0
+2021-06-12 15:35:53:DEBUG:Grid charging_on:0
+2021-06-12 15:35:53:DEBUG:Solar charging on:1
+2021-06-12 15:35:53:DEBUG:Solar watts:463.0
+2021-06-12 15:35:54:DEBUG:Grid charging_on:0
+2021-06-12 15:35:54:DEBUG:Solar charging on:1
+2021-06-12 15:35:54:DEBUG:Solar watts:465.0
+2021-06-12 15:35:55:DEBUG:Grid charging_on:0
+2021-06-12 15:35:55:DEBUG:Solar charging on:1
+2021-06-12 15:35:55:DEBUG:Solar watts:461.0
+2021-06-12 15:35:56:DEBUG:Grid charging_on:0
+2021-06-12 15:35:56:DEBUG:Solar charging on:1
+2021-06-12 15:35:56:DEBUG:Solar watts:466.0
+2021-06-12 15:35:56:DEBUG:Grid charging_on:0
+2021-06-12 15:35:56:DEBUG:Solar charging on:1
+2021-06-12 15:35:56:DEBUG:Solar watts:462.0
+2021-06-12 15:35:57:DEBUG:Grid charging_on:0
+2021-06-12 15:35:57:DEBUG:Solar charging on:1
+2021-06-12 15:35:57:DEBUG:Solar watts:463.0
+2021-06-12 15:35:58:DEBUG:Grid charging_on:0
+2021-06-12 15:35:58:DEBUG:Solar charging on:1
+2021-06-12 15:35:58:DEBUG:Solar watts:454.0
+2021-06-12 15:35:59:DEBUG:Grid charging_on:0
+2021-06-12 15:35:59:DEBUG:Solar charging on:1
+2021-06-12 15:35:59:DEBUG:Solar watts:459.0
+2021-06-12 15:35:59:DEBUG:Grid charging_on:0
+2021-06-12 15:35:59:DEBUG:Solar charging on:1
+2021-06-12 15:35:59:DEBUG:Solar watts:449.0
+2021-06-12 15:36:00:DEBUG:Grid charging_on:0
+2021-06-12 15:36:00:DEBUG:Solar charging on:1
+2021-06-12 15:36:00:DEBUG:Solar watts:459.0

@@ -9,7 +9,7 @@ import os, sys
 import crcmod
 import json
 import http.client as httplib
-import logging as log
+
 
 
 class Axpert:
@@ -108,9 +108,83 @@ class Axpert:
             send_dict['gridwatts'] = 0.0 if send_dict['gridwatts'] < 0.0 \
                                     else send_dict['gridwatts']
             send_dict['SolarWatts'] = send_dict['loadwatts'] - send_dict['gridwatts']
+        elif command == 'QPIRI':
+            res = res[1:].split()
+            send_dict['grid_rating_voltage']=float(res[0]) # ["float", "AC Input Voltage", "V"],230
+            send_dict['grid_rating_current']=float(res[1])#  ["float", "AC Input Current", "A"],21.7
+            send_dict['out_rating_voltage']=float(res[2])# ["float", "AC Output Voltage", "V"],230
+            send_dict['out_rating_freq']=float(res[3])# ["float", "AC Output Frequency", "Hz"],50
+            send_dict['out_rating_current']=float(res[4])#  ["float", "AC Output Current", "A"],21.7
+            send_dict['out_rating_apparent_pwr']=float(res[5]) #  ["int", "AC Output Apparent Power", "VA"],5000
+            send_dict['out_rating_active_pwr']=float(res[6])#  ["int", "AC Output Active Power", "W"],5000
+            send_dict['bat_rating_voltage']=float(res[7])#  ["float", "Battery Voltage", "V"],48
+            send_dict['bat_recharge_voltage']=float(res[8])#  ["float", "Battery Recharge Voltage", "V"],48
+            send_dict['bat_under_voltage']=float(res[9])# ["float", "Battery Under Voltage", "V"],44
+            send_dict['bat_bulcharge_voltage']=float(res[10])##             ["float", "Battery Bulk Charge Voltage", "V"],54
+            send_dict['bat_floatcharge_voltage']=float(res[11])#  ["float", "Battery Float Charge Voltage", "V"],53.2
+            send_dict['bat_type']=int(res[12]) # 2
+            #  ["option", "Battery Type", ["AGM", "Flooded", "User", "TBD", "Pylontech", "WECO", "Soltaro", "LIb-protocol compatible", "3rd party Lithium"]],
+            send_dict['max_ac_change_current']=float(res[13])#  ["int", "Max AC Charging Current", "A"], 02
+            send_dict['max_charge_current']=float(res[14])#  ["int", "Max Charging Current", "A"],60
+            send_dict['input_voltage_range']=int(res[15])# ["option", "Input Voltage Range", ["Appliance", "UPS"]],0
+            send_dict['POP']=int(res[16])# 1            [
+                    #                 "option",
+                    #                 "Output Source Priority",
+                    #                 ["Utility first", "Solar first", "SBU first"],
+                    #             ],
+            send_dict['PCP']=int(res[17])#  2 [
+                    #                 "option",
+                    #                 "Charger Source Priority",
+                    #                 [
+                    #                     "Utility first",
+                    #                     "Solar first",
+                    #                     "Solar + Utility",
+                    #                     "Only solar charging permitted",
+                    #                 ],
+                    #             ],
+            send_dict['max_parallel_units']=int(res[18])#        ["int", "Max Parallel Units", "units"],
+            send_dict['machine_type']=int(res[19])#             
+                        #             [
+                        #                 "keyed",
+                        #                 "Machine Type",
+                        #                 {"00": "Grid tie", "01": "Off Grid", "10": "Hybrid"},
+                        #             ],
+            send_dict['topology'] = int(res[20])#             ["option", "Topology", ["transformerless", "transformer"]],
+            send_dict['output_mode'] = int(res[21])# #             [
+                        #                 "option",
+                        #                 "Output Mode",
+                        #                 [
+                        #                     "single machine output",
+                        #                     "parallel output",
+                        #                     "Phase 1 of 3 Phase output",
+                        #                     "Phase 2 of 3 Phase output",
+                        #                     "Phase 3 of 3 Phase output",
+                        #                     "Phase 1 of 2 phase output",
+                        #                     "Phase 2 of 2 phase output",
+                        #                     "unknown output",
+                        #                 ],
+                        #             ],
+            send_dict['bat_redischarge_votage'] = float(res[22])#   ["float", "Battery Redischarge Voltage", "V"],
+            send_dict['pv_ok'] = int(res[23])#             [
+                    #                 "option",
+                    #                 "PV OK Condition",
+                    #                 [
+                    #                     "As long as one unit of inverters has connect PV, parallel system will consider PV OK",
+                    #                     "Only All of inverters have connect PV, parallel system will consider PV OK",
+                    #                 ],
+                    #             ],
+            send_dict['pv_pwr_bal'] = int(res[24])#             [
+                    #                 "option",
+                    #                 "PV Power Balance",
+                    #                 [
+                    #                     "PV input max current will be the max charged current",
+                    #                     "PV input max power will be the sum of the max charged power and loads power",
+                    #                 ],
+                    #             ],
+        
         elif command in ['POP00','POP01','POP02','PCP00','PCP01','PCP02','PCP03']:
             send_dict['ACK'] = res
-                         
+
             
         return send_dict
 
@@ -140,6 +214,9 @@ class Axpert:
         return send_dict
             
     def send_and_receive(self,command) -> dict:
+        '''
+        From mpp_solar
+        '''
         # command = 'QPIGS'
         command = str.encode(command)
         print(command)
@@ -151,33 +228,34 @@ class Axpert:
         try:
             usb0 = os.open(self.device, os.O_RDWR | os.O_NONBLOCK)
         except Exception as e:
-            log.debug("USB open error: {}".format(e))
+            #log.debug("USB open error: {}".format(e))
             return {"ERROR": ["USB open error: {}".format(e), ""]}
         # Send the command to the open usb connection
         to_send = full_command
         try:
-            log.debug(f"length of to_send: {len(to_send)}")
+            pass
+            #log.debug(f"length of to_send: {len(to_send)}")
         except:  # noqa: E722
             import pdb
 
             pdb.set_trace()
         if len(to_send) <= 8:
             # Send all at once
-            log.debug("1 chunk send")
+            #log.debug("1 chunk send")
             time.sleep(0.35)
             os.write(usb0, to_send)
         elif len(to_send) > 8 and len(to_send) < 11:
-            log.debug("2 chunk send")
+            #log.debug("2 chunk send")
             time.sleep(0.35)
             os.write(usb0, to_send[:5])
             time.sleep(0.35)
             os.write(usb0, to_send[5:])
         else:
             while len(to_send) > 0:
-                log.debug("multiple chunk send")
+                #log.debug("multiple chunk send")
                 # Split the byte command into smaller chucks
                 send, to_send = to_send[:8], to_send[8:]
-                log.debug("send: {}, to_send: {}".format(send, to_send))
+                #log.debug("send: {}, to_send: {}".format(send, to_send))
                 time.sleep(0.35)
                 os.write(usb0, send)
         time.sleep(0.25)
@@ -190,21 +268,22 @@ class Axpert:
                 r = os.read(usb0, 256)
                 response_line += r
             except Exception as e:
-                log.debug("USB read error: {}".format(e))
+                pass
+                #log.debug("USB read error: {}".format(e))
             # Finished is \r is in byte_response
             if bytes([13]) in response_line:
                 # remove anything after the \r
                 response_line = response_line[: response_line.find(bytes([13])) + 1]
                 break
-        log.debug("usb response was: %s", response_line)
+        #log.debug("usb response was: %s", response_line)
         os.close(usb0)
         return response_line         
             
 
 if __name__ == '__main__':
     axpert = Axpert()
-    print(axpert.send_and_receive('POP02'))
+    #print(axpert.send_and_receive('POP02'))
     output = axpert.run(command='QPIGS')
     print(output)
-    #axpert.run(command='QPIRI')
+    print(axpert.run(command='QPIRI'))
     # axpert.run(command='POP02')
