@@ -285,5 +285,7 @@ if __name__ == '__main__':
     #print(axpert.send_and_receive('POP02'))
     output = axpert.run(command='QPIGS')
     print(output)
-    print(axpert.run(command='QPIRI'))
+    status  = axpert.run(command='QPIRI')
+    print(type(status['POP']))
+    print(status)
     # axpert.run(command='POP02')
