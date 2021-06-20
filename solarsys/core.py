@@ -21,6 +21,7 @@ from pathlib import Path
 from narada import Battery
 from axpert import Axpert
 from mppsolar import get_device_class
+from emoncms import Emoncms
 
 import configparser
 import time
@@ -39,7 +40,7 @@ manager = Manager()
 user='pi'
 log_file_name = Path(f'/home/{user}/github/solarsys').joinpath('solarsys.log')
 logging.basicConfig(filename=log_file_name, filemode='w',
-                    format='%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG,
+                    format='%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO,
                     datefmt = '%Y-%m-%d %H:%M:%S')
 
 stdout_handler = logging.StreamHandler(sys.stdout)
@@ -72,9 +73,20 @@ logger.addHandler(stdout_handler)
 logger.debug('App has started')
 
 
-d = manager.dict()
+#d = manager.dict()
+#d[1]=[]
 bsoc = Value('f', 0.0)
 asoc = Value('f',0.0)
+
+def send_emoncms(q):
+    emoncms = Emoncms()
+    while True:
+        get_dict = q.get()
+        #print(get_dict)
+        emoncms.put_data(get_dict)
+        print('No itmes in queue:', q.qsize())
+        
+    
 
 
 def inverter_service(bsoc,asoc,c):
@@ -102,29 +114,30 @@ def inverter_service(bsoc,asoc,c):
             logger.debug(f"Solar charging on:{res['device_status']['scc_changing_on']}")
             logger.debug(f"Solar watts:{res['SolarWatts']}")
             logger.debug('Output %s',res)
-            # print(c)
             bsoc.acquire(),asoc.acquire()
-            if asoc.value <= 77.0 and asoc.value!=0:
+            c.put({'inverter':res})
+            if asoc.value <= 71.0 and asoc.value!=0:
                 # logger.debug('####### Must Stop Discharging Battery #######')
                 # We can check on this basis because of the way charge source
                 # priorty is set. This will have to change if charge source set
-                # to solar only
+                # to solar only8
                 # So this condition hold with PCP set to PCP02, charger source
                 # Utility and Solar
-                if res['device_status']['charging_on'] + \
-                   res['device_status']['scc_changing_on']==0: 
-                    logger.debug('POP01 command issued')
+                if res['device_status']['charging_on'] == 0:
+                   # res['device_status']['scc_changing_on']==0: 
                     cres = 'ACK'
                     status = axpert.run(command='QPIRI')
                     logger.debug('Status %s',status)
-                    if status['POP'] != 1:
-                        cres = dev.run_command('POP01')
-                        logger.debug(f'POP01 command status {cres}')
+                    if status['POP'] != 0:
+                        logger.debug('POP00 command issued')
+                        cres = dev.run_command('POP00')
+                        logger.debug(f'POP00 command status {cres}')
 
                 
-            if asoc.value >= 80.0:
+            if asoc.value >= 75.0:
                 # logger.debug('########### Can Discharge Now ###########')
-                if res['device_status']['charging_on']==1:
+                if res['device_status']['charging_on'] \
+                   + res['device_status']['scc_changing_on'] == 1:
                     print('POP02 command issued')
                     logger.debug('POP02 command issued')
                     cres = 'ACK'
@@ -139,7 +152,7 @@ def inverter_service(bsoc,asoc,c):
             bsoc.release(),asoc.release()
             # time.sleep(1)
     except Exception as e:
-        print(e)
+        print('inverter error:',e)
         bsoc.release(),asoc.release()
 
 def battery_service(bat_soc,ave_soc,cz):
@@ -149,33 +162,42 @@ def battery_service(bat_soc,ave_soc,cz):
     time.sleep(1.0)
     # print (name, "Exiting")
     bat_soc_dict = {}
+    n = 0
     while True:
         try:
             for batid in [0,1,2,4]:
                 bat_dic=bat.sendreceive(batid)
-                cz = bat_dic
+#                 for k,v in bat_dic.items():
+#                     if k in bat_dic['soc']:#['status','cell_volts','temp']:
+                #cz[1] = [bat_dic['soc']]
                 if len(bat_dic)>0:
                     # print(f'Battery SOC:{bat_dic["soc"]}')
-                    bat.send_all_data(bat_dic)
+                    # bat.send_all_data(bat_dic)
                     bat_soc.acquire(),ave_soc.acquire()
+                    cz.put({'bat':bat_dic})
+                    # cz.put({'testing battery',123})
                     bat_soc.value = bat_dic['soc']
                     bat_soc_dict[batid] = bat_dic['soc']
                     ave_soc.value = sum(bat_soc_dict.values())/float(len(bat_soc_dict))
                     print(bat_soc_dict)
                     # print ("Battery Service SOC is =",az.value)
                     bat_soc.release(),ave_soc.release()
+                    n += 1
             #time.sleep(1)
         except Exception as e:
-            print(e)
+            logger.error(e)
             bat_soc.release(),ave_soc.release()
+            
 
 if __name__ == '__main__':
-
+    d = Queue()
 
     run_battery = Process(name='battery', target=battery_service,args=(asoc,bsoc,d,))
     run_inverter = Process(name='Inverter', target=inverter_service,args=(asoc,bsoc,d,))
+    send_data = Process(name='send_data', target=send_emoncms,args=(d,))
     #worker_2 = Process(target=worker,args=(a,)) # use default name
 
     run_battery.start()
     #worker_2.start()
     run_inverter.start()
+    send_data.start()
