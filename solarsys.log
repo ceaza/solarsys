@@ -1,1 +1,8 @@
-2021-06-20 16:09:56:INFO:Using hidrawio for communications
+2021-06-20 19:59:10:INFO:Using hidrawio for communications
+2021-06-20 19:59:14:INFO:Running command POP00
+2021-06-20 19:59:14:INFO:Using protocol b'PI30' with 36 commands
+2021-06-20 19:59:14:INFO:full command b'POP00\xc2H\r' for command POP00
+2021-06-20 19:59:15:INFO:response passed to decode: b'(ACK9 \r'
+2021-06-20 19:59:15:INFO:Processing response of type DEFAULT
+2021-06-20 19:59:15:INFO:Processing DEFAULT type responses
+2021-06-20 19:59:15:INFO:Decoded response {'raw_response': ['(ACK9 \r', ''], '_command': 'POP00', '_command_description': 'Set Device Output Source Priority', 'POP': ['ACK', '']}

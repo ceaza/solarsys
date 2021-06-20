@@ -14,10 +14,15 @@ class Emoncms:
         string = "/"+self.emoncmspath+"/input/post.json?&node=" \
                  +"Raspberry"+"&json="+data+"&apikey="+ self.apikey
         #print(string)
-        conn.request("GET",string)
-        response = conn.getresponse()
-        print(response)
-        conn.close()
+        try:
+            conn.request("GET",string)
+            response = conn.getresponse()
+            print(response)
+            conn.close()
+            return True
+        except:
+            return False
+        
         
     def send_bat_data(self,ddict):
         keys_to_send = ['soc','current','volts','temp']
@@ -33,7 +38,10 @@ class Emoncms:
         data = data.replace('"','')
         data = data.replace(' ','')
         # print(data)
-        self.send_data(data)        
+        for t in range(100):
+            success = self.send_data(data)
+            if success:
+                break
 
     def send_inverter_data(self,ddict):
         keys_to_not_send = ['device_status','pvw atts','gri dvoltage']
@@ -46,10 +54,10 @@ class Emoncms:
         data = data.replace('"','')
         data = data.replace(' ','')
         # print(data)
-        try:
-            self.send_data(data)
-        except:
-            print('timed out')
+        for t in range(100):
+            success = self.send_data(data)
+            if success:
+                break
             
     def put_data(self,ddict):
         if 'bat' in ddict.keys():
