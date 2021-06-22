@@ -201,17 +201,27 @@ class Battery:
             lt.append(t)
         return lt[:4]
 
-    def fstatus(self,cell_buff):
+    def fstatus(self,cell_buff,output_type=0):
         '''look up status'''
-        lt=[]
-        for cell in range(0,4,1):
-            slist = format(cell_buff[cell],'#010b')[2:]
-    #        print(slist)
-            slist = [bool(int(b)) for b in slist]
-            flags = [(self.status[cell][7-i],slist[i]) for i in range(7,-1,-1) if slist[i] ]
-    #        print(flags)
-            lt.append(flags)
-        return lt
+        if output_type==0:
+            lt=[]
+            for cell in range(0,4,1):
+                slist = format(cell_buff[cell],'#010b')[2:]
+                print(slist)
+                slist = [bool(int(b)) for b in slist]
+                flags = [(self.status[cell][7-i],slist[i]) for i in range(7,-1,-1) if slist[i] ]
+                print(flags)
+                lt.append(flags)
+            return lt
+        elif output_type==1:
+            ltd = {}
+            for cell in range(0,4,1):
+                slist = format(cell_buff[cell],'#010b')[2:]
+                slist = [int(b) for b in slist]
+                for i in range(7,-1,-1):
+                    if self.status[cell][7-i]!= '(Reserved)' and slist[i]==1:
+                        ltd[self.status[cell][7-i]] = slist[i]           
+            return ltd
 
     def get_mapping(self,data_length):
         if data_length == 84:
@@ -239,7 +249,7 @@ class Battery:
                 'temp':[50,12+increment,lambda temp:self.ftemp(temp),'C'],
                 'sub_status':[62+increment,1,0,'ID'],
                 'number_status':[63+increment,1,0,'count'],        
-                'status':[64+increment,10,lambda status:self.fstatus(status),'flag'],
+                'status':[64+increment,10,lambda status:self.fstatus(status,1),'flag'],
                 'sub_cycles':[74+increment,1,0,'ID'],
                 'number_cycles':[75+increment,1,0,'count'],        
                 'cycles':[76+increment,2,lambda x:(x[0]*256 + x[1]),'cycles'],
@@ -289,7 +299,7 @@ if __name__ == "__main__":
     while True:
         for batid in [0,1,2,4]:
             bat_dic=bat.sendreceive(batid)
-            
+            print(bat_dic)
             print(f'Battery SOC:{bat_dic["soc"]}')
             bat.send_all_data(bat_dic)
     
