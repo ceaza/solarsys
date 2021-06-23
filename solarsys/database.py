@@ -143,29 +143,31 @@ class DataBase:
     def write_data(self,table,my_dict):
         cur = self.con.cursor()
         table_name = 'inverter'
-        print(my_dict.keys())
+        #print(my_dict.keys())
         fields = (str(['date']+list(my_dict.keys())).replace("'",'')[1:-1])
         values = (str([str(datetime.now())]+list(my_dict.values()))[1:-1])
         sql = 'INSERT INTO ' + table + ' (' + fields + ') VALUES (' + values + ')'
-        print(fields)
-        print(values)
-        print(sql)
+        #print(fields)
+        #print(values)
+        #print(sql)
         cur.execute(sql)
         self.con.commit()
              
     def put_data(self,ddict):
-        if 'pvwatts' in ddict.keys():
-            sdict = self.output_dic(ddict)
+        if 'inverter' in ddict.keys():
+            sdict = self.output_dic(ddict['inverter'])
+            #print(sdict)
             self.write_data('MAIN_INVERTER',sdict)
-        elif 'pvwatts' not in ddict.keys():
-            del ddict['status']
+        elif 'bat' in ddict.keys():
+            print(ddict)
+            ddict = ddict['bat']
             sdict = OrderedDict()
             for k,v in ddict.items():
                 if k=='cell_volts':
                     sdict[k] = ','.join(map(str,v[1]))
                 elif k == 'temp':
                     sdict[k] = ','.join(map(str,v))
-                else:
+                elif k != 'status':
                     sdict[k] = v
             self.write_data('BATTERY',sdict)
         else:
@@ -179,18 +181,35 @@ if __name__ == '__main__':
         cur.execute('DROP TABLE BATTERY')
         db.con.commit()
         db.con.close()
-    if 0:
+    if 1:
+        import pandas as pd
+        import numpy as np
         db = DataBase()    
         # db.put_data(test_idata)
         # db.put_data(test_bdata)
         cur = db.con.cursor()
-        db._create_main_itable(cur)
-        db._create_btable(cur)
-        results1 = cur.execute('SELECT * FROM MAIN_INVERTER').fetchall()
-        results2 = cur.execute('SELECT * FROM BATTERY').fetchall()
+        #db._create_main_itable(cur)
+        #db._create_btable(cur)
+        #results1 = cur.execute('SELECT * FROM MAIN_INVERTER').fetchall()
+        # results2 = cur.execute('SELECT * FROM BATTERY').fetchall()
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        inv = pd.read_sql('SELECT * FROM MAIN_INVERTER',db.con)
         #cur.execute('DROP TABLE MAIN_INVERTER')
         print('Results')
-        print(results2)
+        inv['date'] = pd.to_datetime(inv.date)
+        inv['tdelta'] = (inv.date - inv.shift(1).date)/np.timedelta64(1,'h')
+        print(type(inv['date'].values[-1]))
+        inv = inv[['date','gridwatts','loadwatts','SolarWatts','pvwatts','tdelta']].set_index('date')
+        inv['pv_wh'] = inv['pvwatts'] * inv.tdelta 
+        inv['load_wh'] = inv['loadwatts'] * inv.tdelta
+        inv['grid_wh'] = inv['gridwatts'] * inv.tdelta
+        print(inv)
+        print(inv[['pv_wh','load_wh','grid_wh']].groupby(pd.Grouper(freq='H')).sum()/1000.0)
+        print(inv[['pv_wh','load_wh','grid_wh']].groupby(pd.Grouper(freq='D')).sum()/1000.0)
+        inv[['pvwatts']].plot()
+        plt.show()
+        #print(results2)
         db.con.close()
             
             

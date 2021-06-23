@@ -22,6 +22,7 @@ from narada import Battery
 from axpert import Axpert
 from mppsolar import get_device_class
 from emoncms import Emoncms
+from database import DataBase
 
 import configparser
 import time
@@ -86,10 +87,16 @@ def send_emoncms(q):
         emoncms.put_data(get_dict)
         print('No itmes in queue:', q.qsize())
         
-    
+def db_service(dbq):
+    db = DataBase()
+    while True:
+        get_dict = dbq.get()
+        #print(get_dict)
+        db.put_data(get_dict)
+           
 
 
-def inverter_service(bsoc,asoc,c):
+def inverter_service(bsoc,asoc,c,db):
     '''
     This routine controls when the inverter switches between using the battery
     and not as a source for the output.
@@ -116,6 +123,7 @@ def inverter_service(bsoc,asoc,c):
             logger.debug('Output %s',res)
             bsoc.acquire(),asoc.acquire()
             c.put({'inverter':res})
+            db.put({'inverter':res})
             if asoc.value <= 71.0 and asoc.value!=0:
                 # logger.debug('####### Must Stop Discharging Battery #######')
                 # We can check on this basis because of the way charge source
@@ -155,7 +163,7 @@ def inverter_service(bsoc,asoc,c):
         print('inverter error:',e)
         bsoc.release(),asoc.release()
 
-def battery_service(bat_soc,ave_soc,cz):
+def battery_service(bat_soc,ave_soc,cz,db):
     bat = Battery()
     name = current_process().name
     # print (name,"Starting")
@@ -175,6 +183,7 @@ def battery_service(bat_soc,ave_soc,cz):
                     # bat.send_all_data(bat_dic)
                     bat_soc.acquire(),ave_soc.acquire()
                     cz.put({'bat':bat_dic})
+                    db.put({'bat':bat_dic})
                     # cz.put({'testing battery',123})
                     bat_soc.value = bat_dic['soc']
                     bat_soc_dict[batid] = bat_dic['soc']
@@ -191,13 +200,13 @@ def battery_service(bat_soc,ave_soc,cz):
 
 if __name__ == '__main__':
     d = Queue()
-
-    run_battery = Process(name='battery', target=battery_service,args=(asoc,bsoc,d,))
-    run_inverter = Process(name='Inverter', target=inverter_service,args=(asoc,bsoc,d,))
+    dbq = Queue()
+    run_battery = Process(name='battery', target=battery_service,args=(asoc,bsoc,d,dbq,))
+    run_inverter = Process(name='Inverter', target=inverter_service,args=(asoc,bsoc,d,dbq,))
+    run_database = Process(name = 'Database', target=db_service,args=(dbq,))
     send_data = Process(name='send_data', target=send_emoncms,args=(d,))
-    #worker_2 = Process(target=worker,args=(a,)) # use default name
 
     run_battery.start()
-    #worker_2.start()
     run_inverter.start()
+    run_database.start()
     send_data.start()
