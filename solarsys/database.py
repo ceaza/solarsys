@@ -78,9 +78,9 @@ class DataBase:
 
     def _create_btable(self,cur):
         
-        sql_txt = ''' CREATE TABLE IF NOT EXISTS BATTERY
+        sql_txt = ''' CREATE TABLE IF NOT EXISTS BATTERY1
             (id integer primary key autoincrement,
-            date text,
+            date INTEGER,
             addr int,
             cell_volts text ,
             current real,
@@ -95,9 +95,9 @@ class DataBase:
     
     def _create_main_itable(self,cur):
         
-        sql_txt = ''' CREATE TABLE IF NOT EXISTS MAIN_INVERTER
+        sql_txt = ''' CREATE TABLE IF NOT EXISTS MAIN_INVERTER1
             (id integer primary key autoincrement,
-            date text,
+            date INTEGER,
             gridvoltage real,
             grid_frequency real,
             inverter_voltage real,
@@ -177,10 +177,50 @@ if __name__ == '__main__':
     if 0:
         db = DataBase()
         cur = db.con.cursor()
+        sql = "SELECT name FROM sqlite_master WHERE type='table'"
+        print(cur.execute(sql).fetchall())
+
+    if 0:
+        db = DataBase()
+        cur = db.con.cursor()
+        sql = "ALTER TABLE MAIN_INVERTER ADD processed BOOLEAN DEFAULT 0 "
+        print(cur.execute(sql).fetchall())
+
+    if 0:
+        db = DataBase()
+        cur = db.con.cursor()
         cur.execute('DROP TABLE MAIN_INVERTER')
         cur.execute('DROP TABLE BATTERY')
         db.con.commit()
         db.con.close()
+    if 0:
+        import pandas as pd
+        db = DataBase()
+        cur = db.con.cursor()
+        db._create_main_itable(cur)
+        db._create_btable(cur)
+        db.con.commit()
+        #cur.execute('DROP TABLE MAIN_INVERTER1')
+        #cur.execute('DROP TABLE BATTERY1')
+        #db.con.commit()
+        #1/0
+        sql = 'INSERT INTO MAIN_INVERTER1 SELECT * FROM MAIN_INVERTER'
+        cur.execute(sql)
+        sql = 'INSERT INTO BATTERY1 SELECT * FROM BATTERY'
+        cur.execute(sql)
+        db.con.commit()
+        sql = 'ALTER TABLE BATTERY RENAME TO BATTERY_D'
+        cur.execute(sql)
+        sql = 'ALTER TABLE BATTERY1 RENAME TO BATTERY'
+        cur.execute(sql)
+        sql = 'ALTER TABLE MAIN_INVERTER RENAME TO MAIN_INVERTER_D'
+        cur.execute(sql)
+        sql = 'ALTER TABLE MAIN_INVERTER1 RENAME TO MAIN_INVERTER'
+        cur.execute(sql)        
+        #db.con.close()
+        inv = pd.read_sql('SELECT * FROM MAIN_INVERTER',db.con,parse_dates=['date'])
+        print(type(inv.date.values[-1]))
+        
     if 1:
         import pandas as pd
         import numpy as np
@@ -194,20 +234,30 @@ if __name__ == '__main__':
         # results2 = cur.execute('SELECT * FROM BATTERY').fetchall()
         import pandas as pd
         import matplotlib.pyplot as plt
-        inv = pd.read_sql('SELECT * FROM MAIN_INVERTER',db.con)
-        #cur.execute('DROP TABLE MAIN_INVERTER')
-        print('Results')
-        inv['date'] = pd.to_datetime(inv.date)
+        inv = pd.read_sql('SELECT * FROM MAIN_INVERTER',db.con,parse_dates=['date'])
+        bat = pd.read_sql('SELECT * FROM BATTERY',db.con,parse_dates=['date'])
+        print(inv)
+        bat = bat.set_index('date')
         inv['tdelta'] = (inv.date - inv.shift(1).date)/np.timedelta64(1,'h')
-        print(type(inv['date'].values[-1]))
-        inv = inv[['date','gridwatts','loadwatts','SolarWatts','pvwatts','tdelta']].set_index('date')
+        inv = inv[['date','gridwatts','loadwatts','batterywatts',
+                   'SolarWatts','pvwatts','tdelta']].set_index('date')
         inv['pv_wh'] = inv['pvwatts'] * inv.tdelta 
         inv['load_wh'] = inv['loadwatts'] * inv.tdelta
         inv['grid_wh'] = inv['gridwatts'] * inv.tdelta
+        inv['bat_wh'] = inv['batterywatts'] * inv.tdelta
         print(inv)
-        print(inv[['pv_wh','load_wh','grid_wh']].groupby(pd.Grouper(freq='H')).sum()/1000.0)
-        print(inv[['pv_wh','load_wh','grid_wh']].groupby(pd.Grouper(freq='D')).sum()/1000.0)
-        inv[['pvwatts']].plot()
+        print(inv[['pv_wh','load_wh','grid_wh','bat_wh']].groupby(pd.Grouper(freq='H')).sum()/1000.0)
+        print(inv[['pv_wh','load_wh','grid_wh','bat_wh']].groupby(pd.Grouper(freq='D')).sum()/1000.0)
+        inv[['pvwatts','loadwatts']].plot()
+        print(bat[['addr','cell_volts']])
+        bat[[f'c{c}'for c in range(0,15)]] = bat.cell_volts.str.split(',',expand=True)
+        bat[[f'c{c}'for c in range(0,15)]] = bat[[f'c{c}'for c in range(0,15)]].applymap(lambda x: float(x.strip()))
+        if 0:
+            for add in bat.addr.unique():
+                bat[bat.addr==add][[f'c{c}'for c in range(0,15)]].plot(title=f'Battery {add}')
+                
+        #cells = cells.applymap(lambda x: float(x.strip()))
+        #cells.plot()
         plt.show()
         #print(results2)
         db.con.close()

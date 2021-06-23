@@ -94,6 +94,17 @@ def db_service(dbq):
         #print(get_dict)
         db.put_data(get_dict)
            
+def calc_service():
+    '''
+    This function calculates key system statistics
+    PV produced for day
+    PV produced for hour
+    PV Max
+    '''
+    pass
+    while True:
+        db = DataBase()
+        
 
 
 def inverter_service(bsoc,asoc,c,db):

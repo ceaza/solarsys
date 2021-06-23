@@ -1,17 +1,1 @@
-2021-06-23 11:20:18:INFO:Using hidrawio for communications
-2021-06-23 12:39:28:ERROR:[Errno 32] Broken pipe
-21-06-23 11:20:22:INFO:Using protocol b'PI30' with 36 commands
-2021-06-23 11:20:22:INFO:full command b'POP00\xc2H\r' for command POP00
-2021-06-23 11:20:23:INFO:response passed to decode: b'(ACK9 \r'
-2021-06-23 11:20:23:INFO:Processing response of type DEFAULT
-2021-06-23 11:20:23:INFO:Processing DEFAULT type responses
-2021-06-23 11:20:23:INFO:Decoded response {'raw_response': ['(ACK9 \r', ''], '_command': 'POP00', '_command_description': 'Set Device Output Source Priority', 'POP': ['ACK', '']}
-2022021-06-23 12:39:28:ERROR:[Errno 32] Broken pipe
-06-23 11:20:30:INFO:Using protocol b'PI30' with 36 commands
-2021-06-23 11:20:30:INFO:full command b'POP02\xe2\x0b\r' for command POP02
-2021-06-23 11:20:30:INFO:response passed to decode: b'(ACK9 \r'
-2021-06-23 11:20:30:INFO:Processing response of type DEFAULT
-2021-06-23 11:20:30:INFO:Processing DEFAULT type responses
-2021-06-23 11:20:30:INFO:Decoded response {'raw_response': ['(ACK9 \r', ''], '_command': 'POP02', '_command_description': 'Set Device Output Source Priority', 'POP': ['ACK', '']}
-2021-06-23 12:39:28:ERROR:[Errno 32] Broken pipe
-2021-06-23 12:39:31:ERROR:[Errno 32] Broken pipe
+2021-06-23 20:45:11:INFO:Using hidrawio for communications
