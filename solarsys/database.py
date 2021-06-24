@@ -169,7 +169,18 @@ class DataBase:
                     sdict[k] = ','.join(map(str,v[1]))
                 elif k == 'temp':
                     sdict[k] = ','.join(map(str,v))
-                elif k != 'status':
+                elif k == 'status':
+                    for k1,v1 in v.items():
+                        if k1 in ['Charging',
+                                'Discharging',
+                                'Short_Current_Protect',
+                                'Over_Current_Protect',
+                                'Over_Voltage_Protect',
+                                'Under_Voltage_Protect',
+                                'Charge_OT_Protect',
+                                'Charge_UT_Protect']:
+                            sdict[k1] = v1
+                else:
                     sdict[k] = v
             self.write_data('BATTERY',sdict)
         else:
@@ -194,8 +205,20 @@ if __name__ == '__main__':
     if 0:
         db = DataBase()
         cur = db.con.cursor()
-        sql = "ALTER TABLE MAIN_INVERTER ADD processed BOOLEAN DEFAULT 0 "
-        print(cur.execute(sql).fetchall())
+        flds = ['Charging',
+                'Discharging',
+                'Short_Current_Protect',
+                'Over_Current_Protect',
+                'Over_Voltage_Protect',
+                'Under_Voltage_Protect',
+                'Charge_OT_Protect',
+                'Charge_UT_Protect']
+        for fld in flds:
+            sql = f"ALTER TABLE BATTERY ADD {fld} BOOLEAN DEFAULT 0 "
+            print(sql)
+            cur.execute(sql)
+            db.con.commit()
+        db.con.close()
 
     if 0:
         db = DataBase()
@@ -257,6 +280,8 @@ if __name__ == '__main__':
         inv = pd.read_sql('SELECT * FROM MAIN_INVERTER',db.con,parse_dates=['date'])
         bat = pd.read_sql('SELECT * FROM BATTERY',db.con,parse_dates=['date'])
         bat = bat.set_index('date')
+        print(bat.iloc[-1])
+        
         inv['tdelta'] = (inv.date - inv.shift(1).date)/np.timedelta64(1,'h')
         inv = inv[['date','gridwatts','loadwatts','batterywatts',
                    'SolarWatts','pvwatts','tdelta']].set_index('date')
@@ -267,13 +292,27 @@ if __name__ == '__main__':
         print(inv[['pvwatts','loadwatts']])
         print(inv[['pv_wh','load_wh','grid_wh','bat_wh']].groupby(pd.Grouper(freq='H')).sum()/1000.0)
         print(inv[['pv_wh','load_wh','grid_wh','bat_wh']].groupby(pd.Grouper(freq='D')).sum()/1000.0)
-        inv[['pvwatts','loadwatts']].plot()
+        plt.figure()
+        ax=inv[['pvwatts','loadwatts']].plot()
+        bat.soc.rolling(4).mean().plot(ax=ax, secondary_y=True)
+        #plt.show()
         #print(bat[['addr','cell_volts']])
         bat[[f'c{c}'for c in range(0,15)]] = bat.cell_volts.str.split(',',expand=True)
         bat[[f'c{c}'for c in range(0,15)]] = bat[[f'c{c}'for c in range(0,15)]].applymap(lambda x: float(x.strip()))
-        if 0:
+        if 1:
             for add in bat.addr.unique():
-                bat[bat.addr==add][[f'c{c}'for c in range(0,15)]].plot(title=f'Battery {add}')
+                plt.figure()
+                #ax0 = bat[bat.addr==add][[f'c{c}'for c in range(0,15)]].range().plot(title=f'Battery {add}')
+                cell_range = bat[bat.addr==add][[f'c{c}'for c in range(0,15)]].max(axis=1) - \
+                    bat[bat.addr==add][[f'c{c}'for c in range(0,15)]].min(axis=1)
+                ax = cell_range.plot(title=f'Battery {add}')
+                bat[bat.addr==add].soc.plot(ax=ax,secondary_y=True)
+                
+                
+#                 cellvals = bat[bat.addr==add][[f'c{c}'for c in range(0,15)]].iloc[-1]
+#                 cellvals = cellvals.to_frame('v')
+#                 ax = cellvals.plot.bar(title=f'Battery {add}')
+#                 ax.set_ylim(3.0,3.8)
                 
         #cells = cells.applymap(lambda x: float(x.strip()))
         #cells.plot()
