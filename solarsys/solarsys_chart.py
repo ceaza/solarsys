@@ -39,10 +39,10 @@ print(inv[['pv_wh','load_wh','grid_wh','bat_wh']].groupby(pd.Grouper(freq='H')).
 print(inv[['pv_wh','load_wh','grid_wh','bat_wh']].groupby(pd.Grouper(freq='D')).sum()/1000.0)
 #plt.figure()
 cols = ['pvwatts','loadwatts','gridwatts','batterywatts']
-# ax=inv[cols].plot()
-# bat[bat.addr==0].soc.plot(ax=ax, secondary_y=True)
-# lines = ax.get_lines() + ax.right_ax.get_lines()
-# ax.legend(lines,cols +['SOC'])
+ax=inv[cols].plot()
+bat[bat.addr==0].soc.plot(ax=ax, secondary_y=True)
+lines = ax.get_lines() + ax.right_ax.get_lines()
+ax.legend(lines,cols +['SOC'])
 
 
         #print(bat[['addr','cell_volts']])
