@@ -3,6 +3,9 @@ from datetime import datetime
 import sqlite3
 from collections import OrderedDict
 from pathlib import Path
+import logging
+logger = logging.getLogger(__name__)
+
 
 test_idata = {'gridvoltage': 229.1,
              'grid_frequency': 49.8,
@@ -73,8 +76,8 @@ class DataBase:
         dbpath = Path(os.path.abspath(__file__)).parent.parent.joinpath('database')
         dbpath.mkdir(parents=True, exist_ok=True)
         dbfile = dbpath.joinpath('solarsys.db')
-        print(dbfile)
-        self.con = sqlite3.connect(dbfile)
+        logger.info('dbfilenme %s',dbfile)
+        self.con = sqlite3.connect(dbfile,isolation_level=None)
 
     def _create_btable(self,cur):
         
@@ -152,8 +155,14 @@ class DataBase:
         #print(fields)
         #print(values)
         # print(sql)
-        cur.execute(sql)
-        self.con.commit()
+        try:
+            cur.execute(sql)
+            self.con.commit()
+            print('DB Insert:: ',datetime.now())
+        except Exception as e:
+            logger.error("Database error: %s", e )
+        
+        
              
     def put_data(self,ddict):
         if 'inverter' in ddict.keys():
@@ -277,8 +286,12 @@ if __name__ == '__main__':
         cur = db.con.cursor()
         import pandas as pd
         import matplotlib.pyplot as plt
-        inv = pd.read_sql('SELECT * FROM MAIN_INVERTER',db.con,parse_dates=['date'])
-        bat = pd.read_sql('SELECT * FROM BATTERY',db.con,parse_dates=['date'])
+        cur = db.con.cursor()
+        cur.execute('PRAGMA journal_mode=WAL;')
+        inv = pd.read_sql('SELECT * FROM MAIN_INVERTER WHERE date > "2021-06-27 08:00"',
+                          db.con,parse_dates=['date'])
+        bat = pd.read_sql('SELECT * FROM BATTERY WHERE date > "2021-06-27 08:00"',
+                          db.con,parse_dates=['date'])
         bat = bat.set_index('date')
         print(bat.iloc[-1])
         
@@ -292,14 +305,17 @@ if __name__ == '__main__':
         print(inv[['pvwatts','loadwatts']])
         print(inv[['pv_wh','load_wh','grid_wh','bat_wh']].groupby(pd.Grouper(freq='H')).sum()/1000.0)
         print(inv[['pv_wh','load_wh','grid_wh','bat_wh']].groupby(pd.Grouper(freq='D')).sum()/1000.0)
-        plt.figure()
-        ax=inv[['pvwatts','loadwatts']].plot()
-        bat.soc.rolling(4).mean().plot(ax=ax, secondary_y=True)
+        #plt.figure()
+        cols = ['pvwatts','loadwatts','gridwatts','batterywatts']
+        ax=inv[cols].plot()
+        bat[bat.addr==0].soc.plot(ax=ax, secondary_y=True)
+        lines = ax.get_lines() + ax.right_ax.get_lines()
+        ax.legend(lines,cols +['SOC'])
         #plt.show()
         #print(bat[['addr','cell_volts']])
         bat[[f'c{c}'for c in range(0,15)]] = bat.cell_volts.str.split(',',expand=True)
         bat[[f'c{c}'for c in range(0,15)]] = bat[[f'c{c}'for c in range(0,15)]].applymap(lambda x: float(x.strip()))
-        if 1:
+        if 0:
             for add in bat.addr.unique():
                 plt.figure()
                 #ax0 = bat[bat.addr==add][[f'c{c}'for c in range(0,15)]].range().plot(title=f'Battery {add}')
@@ -315,7 +331,10 @@ if __name__ == '__main__':
 #                 ax.set_ylim(3.0,3.8)
                 
         #cells = cells.applymap(lambda x: float(x.strip()))
-        #cells.plot()
+        #cells.plot();
+        #inv[['pvwatts','loadwatts']]['2021-06-26 9:12:30':]
+        print(inv[inv.loadwatts>0.0][['pvwatts','loadwatts']])
+        #print(bat[bat.soc<70.0])
         plt.show()
         #print(results2)
         db.con.close()

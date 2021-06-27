@@ -17,6 +17,7 @@ PCP03 - Solar only
 '''
 
 import logging
+import pprint
 from pathlib import Path
 from narada import Battery
 from axpert import Axpert
@@ -84,7 +85,10 @@ def send_emoncms(q):
     while True:
         get_dict = q.get()
         #print(get_dict)
-        emoncms.put_data(get_dict)
+        if q.qsize()>100:
+            pass
+        else:
+            emoncms.put_data(get_dict)
         print('No itmes in queue:', q.qsize())
         
 def db_service(dbq):
@@ -122,8 +126,20 @@ def inverter_service(bsoc,asoc,c,db):
     asoc : average battery state of charge in percent
     '''
     device_class = get_device_class('mppsolar')
-    dev = device_class(port='/dev/hidraw0',protocol='PI30')
+    dev = device_class(port='/dev/hidraw0',protocol='PI30') 
     axpert = Axpert()
+    # get startup status
+    command_status={'status':'there is no status yet'}
+    status  = {'response':'there is no status yet'}
+    for tr in range(10):
+        logger.info(f'Get status try: {tr}')
+        status  = axpert.run(command='QPIRI',non_block=False)
+        logger.info('Inverter Status:{}'.format(pprint.pformat(status)))  
+        if 'response' in status.keys():
+            logger.info('Response Status:{}'.format(pprint.pformat(status)))  
+        else:
+            break
+    logger.info('Inverter Status:{}'.format(pprint.pformat(status)))    
     try:
         name = current_process().name
         while True:
@@ -139,40 +155,48 @@ def inverter_service(bsoc,asoc,c,db):
                 # logger.debug('####### Must Stop Discharging Battery #######')
                 # We can check on this basis because of the way charge source
                 # priorty is set. This will have to change if charge source set
-                # to solar only8
+                # to solar only
                 # So this condition hold with PCP set to PCP02, charger source
                 # Utility and Solar
                 if res['device_status']['charging_on'] == 0:
                    # res['device_status']['scc_changing_on']==0: 
-                    cres = 'ACK'
-                    status = axpert.run(command='QPIRI')
-                    logger.debug('Status %s',status)
+                    # status = axpert.run(command='QPIRI')
+                    logger.debug('Status %s' % status)
+                    logger.debug(f'Command Status for POP is: {status["POP"]}')
                     if status['POP'] != 0:
                         logger.debug('POP00 command issued')
                         cres = dev.run_command('POP00')
-                        logger.debug(f'POP00 command status {cres}')
+                        if cres['POP'][0] == 'ACK':
+                            status['POP']=0
+                        logger.info(f'POP00 command status: {cres}')
 
                 
             if asoc.value >= 75.0:
                 # logger.debug('########### Can Discharge Now ###########')
                 if res['device_status']['charging_on'] \
                    + res['device_status']['scc_changing_on'] == 1:
-                    print('POP02 command issued')
-                    logger.debug('POP02 command issued')
-                    cres = 'ACK'
-                    status = axpert.run(command='QPIRI')
-                    logger.debug('Status %s',status)
-                    if status['POP'] != 2:
+                    logger.debug('POP02 command issued if not already')
+                    # status = axpert.run(command='QPIRI')
+                    logger.debug('Status %s' % status)
+                    logger.debug(f'Command Status for POP is: {status["POP"]}')
+                    if status['POP'] != 2: 
                         cres = dev.run_command('POP02')
-                        logger.debug(f'POP02 command status {cres}')
+                        #cres = {'raw_response': ['(ACK9 \r', ''], '_command': 'POP02', '_command_description': 'Set Device Output Source Priority', 'POP': ['ACK', '']}
+                        if cres['POP'][0] == 'ACK':
+                            status['POP']=2
+                        logger.info(f'POP02 command status {cres}')
+                        command_status['POP02']=cres
             #print('Inverter Values=',inverter.get_values())
             print ("Inverter knows Average SOC = ",asoc.value)
             print ("Inverter knows Bat SOC = ",bsoc.value)
             bsoc.release(),asoc.release()
             # time.sleep(1)
     except Exception as e:
-        print('inverter error:',e)
-        bsoc.release(),asoc.release()
+        logger.error(e)
+        try:
+            bsoc.release(),asoc.release()
+        except:
+            pass
 
 def battery_service(bat_soc,ave_soc,cz,db):
     bat = Battery()
@@ -198,7 +222,9 @@ def battery_service(bat_soc,ave_soc,cz,db):
                     # cz.put({'testing battery',123})
                     bat_soc.value = bat_dic['soc']
                     bat_soc_dict[batid] = bat_dic['soc']
-                    ave_soc.value = sum(bat_soc_dict.values())/float(len(bat_soc_dict))
+                    # make sure we have all batteries before getting average.
+                    if len(bat_soc_dict) == 4:
+                        ave_soc.value = sum(bat_soc_dict.values())/float(len(bat_soc_dict))
                     print(bat_soc_dict)
                     # print ("Battery Service SOC is =",az.value)
                     bat_soc.release(),ave_soc.release()
@@ -212,12 +238,16 @@ def battery_service(bat_soc,ave_soc,cz,db):
 if __name__ == '__main__':
     d = Queue()
     dbq = Queue()
-    run_battery = Process(name='battery', target=battery_service,args=(asoc,bsoc,d,dbq,))
-    run_inverter = Process(name='Inverter', target=inverter_service,args=(asoc,bsoc,d,dbq,))
     run_database = Process(name = 'Database', target=db_service,args=(dbq,))
     send_data = Process(name='send_data', target=send_emoncms,args=(d,))
-
+    run_battery = Process(name='battery', target=battery_service,args=(asoc,bsoc,d,dbq,))
+    run_inverter = Process(name='Inverter', target=inverter_service,args=(asoc,bsoc,d,dbq,))
+    send_data.start()
     run_battery.start()
     run_inverter.start()
     run_database.start()
-    send_data.start()
+
+    
+
+    
+    
