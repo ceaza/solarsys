@@ -12,16 +12,19 @@ y = []
 
 db = DataBase()
 
-
 import pandas as pd
 import numpy as np
 db = DataBase()    
 cur = db.con.cursor()
 cur.execute('PRAGMA journal_mode=WAL;')
-start_date = datetime(2021,6,27,8)
+start_date = datetime(2021,7,18,7,30)
 print(str(start_date))
 inv = pd.read_sql(f'SELECT * FROM MAIN_INVERTER WHERE date > "{start_date}"',
                   db.con,parse_dates=['date'])
+
+print(inv.columns)
+exit()
+
 bat = pd.read_sql(f'SELECT * FROM BATTERY WHERE date > "{start_date}"',
                   db.con,parse_dates=['date'])
 bat = bat.set_index('date')
@@ -35,7 +38,8 @@ inv['load_wh'] = inv['loadwatts'] * inv.tdelta
 inv['grid_wh'] = inv['gridwatts'] * inv.tdelta
 inv['bat_wh'] = inv['batterywatts'] * inv.tdelta
 print(inv[['pvwatts','loadwatts']])
-print(inv[['pv_wh','load_wh','grid_wh','bat_wh']].groupby(pd.Grouper(freq='H')).sum()/1000.0)
+hour_data =inv[['pv_wh','load_wh','grid_wh','bat_wh']].groupby(pd.Grouper(freq='H')).sum()/1000.0
+hour_data.plot.bar(title='Hourly Graph')
 print(inv[['pv_wh','load_wh','grid_wh','bat_wh']].groupby(pd.Grouper(freq='D')).sum()/1000.0)
 #plt.figure()
 cols = ['pvwatts','loadwatts','gridwatts','batterywatts']
@@ -44,11 +48,12 @@ bat[bat.addr==0].soc.plot(ax=ax, secondary_y=True)
 lines = ax.get_lines() + ax.right_ax.get_lines()
 ax.legend(lines,cols +['SOC'])
 
-
+cols = ['loadwatts']
+ax=inv[cols].plot()
         #print(bat[['addr','cell_volts']])
 bat[[f'c{c}'for c in range(0,15)]] = bat.cell_volts.str.split(',',expand=True)
 bat[[f'c{c}'for c in range(0,15)]] = bat[[f'c{c}'for c in range(0,15)]].applymap(lambda x: float(x.strip()))
-if 1:
+if 0:
     for add in bat.addr.unique():
         fig, axs = plt.subplots(nrows=2, ncols=1)
         fig.subplots_adjust(hspace=.7)
@@ -59,7 +64,7 @@ if 1:
         #ax0 = bat[bat.addr==add][[f'c{c}'for c in range(0,15)]].range().plot(title=f'Battery {add}')
         cell_range = bat[bat.addr==add][[f'c{c}'for c in range(0,15)]].max(axis=1) - \
             bat[bat.addr==add][[f'c{c}'for c in range(0,15)]].min(axis=1)
-        ax1 = cell_range.plot(ax=axs[1],title=f'Votage Range vs. SOC \n Cycles:{cycles}')
+        ax1 = cell_range.plot(ax=axs[1],title=f'Vol tage Range vs. SOC \n Cycles:{cycles}')
         ax1.set_ylabel('Cell voltage range')
         bat[bat.addr==add].soc.plot(ax=ax1,secondary_y=True)
         ax1.right_ax.set_ylabel('SOC')

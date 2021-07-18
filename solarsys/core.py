@@ -151,7 +151,7 @@ def inverter_service(bsoc,asoc,c,db):
             bsoc.acquire(),asoc.acquire()
             c.put({'inverter':res})
             db.put({'inverter':res})
-            if asoc.value <= 71.0 and asoc.value!=0:
+            if asoc.value <= 60.0 and asoc.value!=0:
                 # logger.debug('####### Must Stop Discharging Battery #######')
                 # We can check on this basis because of the way charge source
                 # priorty is set. This will have to change if charge source set
@@ -171,7 +171,7 @@ def inverter_service(bsoc,asoc,c,db):
                         logger.info(f'POP00 command status: {cres}')
 
                 
-            if asoc.value >= 75.0:
+            if asoc.value >= 63.0:
                 # logger.debug('########### Can Discharge Now ###########')
                 if res['device_status']['charging_on'] \
                    + res['device_status']['scc_changing_on'] == 1:
