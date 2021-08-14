@@ -171,7 +171,7 @@ def inverter_service(bsoc,asoc,c,db):
                         logger.info(f'POP00 command status: {cres}')
 
                 
-            if asoc.value >= 63.0:
+            if asoc.value >= 73.0:
                 # logger.debug('########### Can Discharge Now ###########')
                 if res['device_status']['charging_on'] \
                    + res['device_status']['scc_changing_on'] == 1:

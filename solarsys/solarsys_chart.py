@@ -3,7 +3,7 @@ from datetime import datetime
 from time import sleep, strftime, time
 from database import DataBase
 import matplotlib.pyplot as plt
-
+import sqlite3
 cpu = CPUTemperature()
 
 plt.ion()
@@ -12,23 +12,25 @@ y = []
 
 db = DataBase()
 
+
+
 import pandas as pd
 import numpy as np
 db = DataBase()    
 cur = db.con.cursor()
 cur.execute('PRAGMA journal_mode=WAL;')
-start_date = datetime(2021,7,18,7,30)
+start_date = datetime(2021,8,7,7,30)
 print(str(start_date))
-inv = pd.read_sql(f'SELECT * FROM MAIN_INVERTER WHERE date > "{start_date}"',
+inv = pd.read_sql(f' SELECT * FROM MAIN_INVERTER WHERE date > "{start_date}"',
                   db.con,parse_dates=['date'])
 
 print(inv.columns)
-exit()
+#exit()
 
 bat = pd.read_sql(f'SELECT * FROM BATTERY WHERE date > "{start_date}"',
                   db.con,parse_dates=['date'])
 bat = bat.set_index('date')
-print(bat.iloc[-1])
+print(bat)
 
 inv['tdelta'] = (inv.date - inv.shift(1).date)/np.timedelta64(1,'h')
 inv = inv[['date','gridwatts','loadwatts','batterywatts',
@@ -38,12 +40,13 @@ inv['load_wh'] = inv['loadwatts'] * inv.tdelta
 inv['grid_wh'] = inv['gridwatts'] * inv.tdelta
 inv['bat_wh'] = inv['batterywatts'] * inv.tdelta
 print(inv[['pvwatts','loadwatts']])
-hour_data =inv[['pv_wh','load_wh','grid_wh','bat_wh']].groupby(pd.Grouper(freq='H')).sum()/1000.0
+hour_data = inv[['pv_wh','load_wh','grid_wh','bat_wh']].groupby(pd.Grouper(freq='H')).sum()/1000.0
 hour_data.plot.bar(title='Hourly Graph')
 print(inv[['pv_wh','load_wh','grid_wh','bat_wh']].groupby(pd.Grouper(freq='D')).sum()/1000.0)
 #plt.figure()
 cols = ['pvwatts','loadwatts','gridwatts','batterywatts']
 ax=inv[cols].plot()
+print(bat)
 bat[bat.addr==0].soc.plot(ax=ax, secondary_y=True)
 lines = ax.get_lines() + ax.right_ax.get_lines()
 ax.legend(lines,cols +['SOC'])

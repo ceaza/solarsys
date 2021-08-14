@@ -78,6 +78,7 @@ class DataBase:
         dbfile = dbpath.joinpath('solarsys.db')
         logger.info('dbfilenme %s',dbfile)
         self.con = sqlite3.connect(dbfile,isolation_level=None)
+        self.con.execute("PRAGMA journal_mode=WAL")
 
     def _create_btable(self,cur):
         
@@ -93,7 +94,15 @@ class DataBase:
             cycles int,
             packvolts real,
             soh real,
-            processed BOOLEAN DEFAULT 0)
+            processed BOOLEAN DEFAULT 0,
+            Charging BOOLEAN DEFAULT 0,
+            Discharging BOOLEAN DEFAULT 0,
+            Short_Current_Protect BOOLEAN DEFAULT 0,
+            Over_Current_Protect BOOLEAN DEFAULT 0,
+            Over_Voltage_Protect BOOLEAN DEFAULT 0,
+            Under_Voltage_Protect BOOLEAN DEFAULT 0,
+            Charge_OT_Protect BOOLEAN DEFAULT 0,
+            Charge_UT_Protect BOOLEAN DEFAULT 0)
             '''
         cur.execute(sql_txt) 
     
@@ -160,7 +169,7 @@ class DataBase:
             self.con.commit()
             print('DB Insert:: ',datetime.now())
         except Exception as e:
-            logger.error("Database error: %s", e )
+            logger.error("Database error: %s on table %s", e,table)
         
         
              
@@ -203,7 +212,7 @@ if __name__ == '__main__':
         sql = "SELECT name FROM sqlite_master WHERE type='table'"
         print(cur.execute(sql).fetchall())
         
-    if 0:
+    if 1:
         import pandas as pd
         db = DataBase()
         cur = db.con.cursor()
@@ -279,7 +288,7 @@ if __name__ == '__main__':
         inv = pd.read_sql('SELECT * FROM MAIN_INVERTER',db.con,parse_dates=['date'])
         print(type(inv.date.values[-1]))
         
-    if 1:
+    if 0:
         import pandas as pd
         import numpy as np
         db = DataBase()    
