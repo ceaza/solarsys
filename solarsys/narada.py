@@ -69,15 +69,15 @@ class Battery:
             return {'e',e}
         
         if text!="b''":
-            print()
+            # print()
             buff = list(res)
             lst = buff   
-            print(len(lst))
+            # print(len(lst))
             if len(lst)==90:
-                print(time.ctime(time.time()))
+                # print(time.ctime(time.time()))
                 emons_dict = self.get_values(lst[:])
             if len(lst)==92:
-                print(time.ctime(time.time()))
+                # print(time.ctime(time.time()))
                 emons_dict = self.get_values(lst[:])
         return emons_dict
 
@@ -87,8 +87,8 @@ class Battery:
         Run the batter service
         '''
 
-        print(self.ser.name)
-        print(self.ser)
+        # print(self.ser.name)
+        # print(self.ser)
         bat_list = self.get_bat_list()
         text = "b''"
         res = ''
@@ -98,7 +98,7 @@ class Battery:
         while True:
             for bat_id in bat_list:
                 try:
-                    print('Bat: {}'.format(bat_id))
+                    # print('Bat: {}'.format(bat_id))
                     self.ser.write(self.command(bat_id,1))
                     sleep(2)
                     #res =ser.readline()
@@ -109,14 +109,14 @@ class Battery:
                     print(e)
 
                 if text!="b''":
-                    print()
+                    # print()
                     #bat_id += 1
                     #bat_id = 4 if bat_id == 3 else bat_id
                     counter += 1
                     buff = list(res)
                     # print(buff)
                     lst = buff
-                    print(len(lst))
+                    # print(len(lst))
                     if len(lst)==90:
                         print(time.ctime(time.time()))
                         emons_dict = self.get_values(lst[:])
@@ -137,10 +137,10 @@ class Battery:
         try:
             conn = httplib.HTTPConnection(self.emons_server,timeout=5)
             string = "/"+self.emoncmspath+"/input/post.json?&node="+"Raspberry"+"&json="+data+"&apikey="+self.apikey
-            print(string)
+            # print(string)
             conn.request("GET",string)
             response = conn.getresponse()
-            print(response)
+            # print(response)
             conn.close()
         except:
             print('Cannot connect')
@@ -207,10 +207,10 @@ class Battery:
             lt=[]
             for cell in range(0,4,1):
                 slist = format(cell_buff[cell],'#010b')[2:]
-                print(slist)
+                # print(slist)
                 slist = [bool(int(b)) for b in slist]
                 flags = [(self.status[cell][7-i],slist[i]) for i in range(7,-1,-1) if slist[i] ]
-                print(flags)
+                # print(flags)
                 lt.append(flags)
             return lt
         elif output_type==1:
@@ -265,15 +265,15 @@ class Battery:
     def get_bat_list(self):
         bat_list = []
         for i in range(0,10):
-            print(i)
+            # print(i)
             self.ser.write(self.command(i,1))  # sending command
             sleep(1)
             res = self.ser.read_until('\n')
             lst = list(res)
-            print(lst)
+            # print(lst)
             if len(lst)>5:
                 bat_list.append(lst[1])
-        print(bat_list)
+        # print(bat_list)
         return bat_list
 
 
@@ -286,7 +286,7 @@ class Battery:
                 f = (lambda x:x) if v[2] == 0 else v[2]
                 val_in =buf[v[0]:v[0]+v[1]]
                 val = f(val_in)		
-                print('{}::{} {}'.format(k,val,v[3]))
+                # print('{}::{} {}'.format(k,val,v[3]))
                 if k== 'addr':
                     val = val[0]
                 out[k] = val

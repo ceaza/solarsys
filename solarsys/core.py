@@ -30,9 +30,13 @@ import time
 import os, sys
 import crcmod
 import json
-import random
+# import random
 
 from multiprocessing import Process, Queue , Manager, Pool, Value , current_process
+from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily, REGISTRY
+from prometheus_client import start_http_server
+
+
 print(os.getcwd())
 # Remove all handlers associated with the root logger object.
 for handler in logging.root.handlers[:]:
@@ -42,7 +46,7 @@ manager = Manager()
 user='pi'
 log_file_name = Path(f'/home/{user}/github/solarsys').joinpath('solarsys.log')
 logging.basicConfig(filename=log_file_name, filemode='w',
-                    format='%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO,
+                    format='%(asctime)s:%(levelname)s:%(message)s', level=logging.ERROR,
                     datefmt = '%Y-%m-%d %H:%M:%S')
 
 stdout_handler = logging.StreamHandler(sys.stdout)
@@ -80,6 +84,73 @@ logger.debug('App has started')
 bsoc = Value('f', 0.0)
 asoc = Value('f',0.0)
 
+
+class CustomCollector(object):
+    def __init__(self,q):
+        self.q = q
+        
+
+    def collect(self):
+        #rdict = self.q.get()
+        if 1:
+            while True:
+                rdict = self.q.get()
+                #print(rdict)
+                if self.q.qsize()>2:
+                    pass
+                else:
+                    break
+        #rdict = self.q.get()
+        #print('###########################################3#',rdict,self.q.qsize())
+
+
+        for key, subdict in rdict.items():
+            if key == 'inverter':
+                gi = GaugeMetricFamily(key, 'Axpert values', labels=['metric'])
+                for k,v in subdict.items():
+                    if k!='device_status':
+                        gi.add_metric([k],v)
+                    else:
+                        gis = GaugeMetricFamily('inverter_status', 'Axpert status values', labels=['metric'])
+                        for kk,vv in v.items():
+                            gis.add_metric([kk],vv)
+                        yield gis
+                yield gi
+    
+            elif key[:3] == 'bat':
+                gb = GaugeMetricFamily(f'{key}','Battery values', labels=['metric'])
+                for k,v in subdict.items():
+                    if k=='status':
+                        gbs = GaugeMetricFamily(f'battery_status_{key}', 'Battery status values', labels=['metric'])
+                        for kk,vv in v.items():
+                            gbs.add_metric([kk],vv)
+                    elif k =='cell_volts':
+                        gb.add_metric(['sum_cell_volts'],v[0])
+                        gbv = GaugeMetricFamily(f'batteryvolts_{key}', 'Cell Volatages', labels=['metric'])
+                        for i, volts in enumerate(v[1]):
+                            gbv.add_metric([f'cell_{i:02d}'],volts)
+                            #print([f'cell_{i}'],volts)
+                    elif k =='temp':
+                        gbt = GaugeMetricFamily(f'batterytemp_{key}', 'Cell Temperature', labels=['metric'])
+                        for i, temp in enumerate(v):
+                            gbt.add_metric([f'temp_{i:02d}'],temp)                            
+                    else:
+                        gb.add_metric([k],v)
+                yield gb
+                yield gbs
+                yield gbv
+                yield gbt
+
+            
+def prometheus_service(q):
+    start_http_server(8000)
+    #qdict = q.get()
+    REGISTRY.register(CustomCollector(q))
+    while True:
+        pass
+
+
+
 def send_emoncms(q):
     emoncms = Emoncms()
     while True:
@@ -111,7 +182,7 @@ def calc_service():
         
 
 
-def inverter_service(bsoc,asoc,c,db):
+def inverter_service(bsoc,asoc,c,db,p):
     '''
     This routine controls when the inverter switches between using the battery
     and not as a source for the output.
@@ -132,7 +203,7 @@ def inverter_service(bsoc,asoc,c,db):
     command_status={'status':'there is no status yet'}
     status  = {'response':'there is no status yet'}
     for tr in range(10):
-        logger.info(f'Get status try: {tr}')
+        logger.debug(f'Get status try: {tr}')
         status  = axpert.run(command='QPIRI',non_block=False)
         logger.info('Inverter Status:{}'.format(pprint.pformat(status)))  
         if 'response' in status.keys():
@@ -149,9 +220,19 @@ def inverter_service(bsoc,asoc,c,db):
             logger.debug(f"Solar watts:{res['SolarWatts']}")
             logger.debug('Output %s',res)
             bsoc.acquire(),asoc.acquire()
-            c.put({'inverter':res})
+            res['asoc'] = asoc.value
+            try:
+                get_dict = c.get_nowait()
+                get_dict['inverter'] = res
+                p.put(get_dict)
+            except:
+                #pass
+                # get_dict = {'inverter':{'device_status':{'no_data':1}}}
+                p.put({'inverter':res})
+             
+
             db.put({'inverter':res})
-            if asoc.value <= 60.0 and asoc.value!=0:
+            if asoc.value <= 45.0 and asoc.value!=0:
                 # logger.debug('####### Must Stop Discharging Battery #######')
                 # We can check on this basis because of the way charge source
                 # priorty is set. This will have to change if charge source set
@@ -171,7 +252,7 @@ def inverter_service(bsoc,asoc,c,db):
                         logger.info(f'POP00 command status: {cres}')
 
                 
-            if asoc.value >= 73.0:
+            if asoc.value >=50.0:
                 # logger.debug('########### Can Discharge Now ###########')
                 if res['device_status']['charging_on'] \
                    + res['device_status']['scc_changing_on'] == 1:
@@ -199,17 +280,20 @@ def inverter_service(bsoc,asoc,c,db):
             pass
 
 def battery_service(bat_soc,ave_soc,cz,db):
+    
     bat = Battery()
     name = current_process().name
     # print (name,"Starting")
-    time.sleep(1.0)
+    # time.sleep(1.0)
     # print (name, "Exiting")
     bat_soc_dict = {}
+    allbatdict = {}
     n = 0
     while True:
         try:
             for batid in [0,1,2,4]:
-                bat_dic=bat.sendreceive(batid)
+                bat_dic = bat.sendreceive(batid)
+                allbatdict[f'bat{batid}'] = bat_dic
 #                 for k,v in bat_dic.items():
 #                     if k in bat_dic['soc']:#['status','cell_volts','temp']:
                 #cz[1] = [bat_dic['soc']]
@@ -217,16 +301,19 @@ def battery_service(bat_soc,ave_soc,cz,db):
                     # print(f'Battery SOC:{bat_dic["soc"]}')
                     # bat.send_all_data(bat_dic)
                     bat_soc.acquire(),ave_soc.acquire()
-                    cz.put({'bat':bat_dic})
+                    
+                    #cz.put({'bat':bat_dic})
                     db.put({'bat':bat_dic})
+                    cz.put(allbatdict)
                     # cz.put({'testing battery',123})
                     bat_soc.value = bat_dic['soc']
                     bat_soc_dict[batid] = bat_dic['soc']
                     # make sure we have all batteries before getting average.
                     if len(bat_soc_dict) == 4:
+                        # print(allbatdict)
                         ave_soc.value = sum(bat_soc_dict.values())/float(len(bat_soc_dict))
                     print(bat_soc_dict)
-                    # print ("Battery Service SOC is =",az.value)
+                    #print ("Battery Service SOC is =",az.value)
                     bat_soc.release(),ave_soc.release()
                     n += 1
             #time.sleep(1)
@@ -236,16 +323,19 @@ def battery_service(bat_soc,ave_soc,cz,db):
             
 
 if __name__ == '__main__':
+    prom = Queue()
     d = Queue()
     dbq = Queue()
     run_database = Process(name = 'Database', target=db_service,args=(dbq,))
-    send_data = Process(name='send_data', target=send_emoncms,args=(d,))
+    #send_data = Process(name='send_data', target=send_emoncms,args=(d,))
     run_battery = Process(name='battery', target=battery_service,args=(asoc,bsoc,d,dbq,))
-    run_inverter = Process(name='Inverter', target=inverter_service,args=(asoc,bsoc,d,dbq,))
-    send_data.start()
+    run_inverter = Process(name='Inverter', target=inverter_service,args=(asoc,bsoc,d,dbq,prom,))
+    run_prometheus = Process(name='Prometheus', target=prometheus_service,args=(prom,))
+    # send_data.start()
     run_battery.start()
     run_inverter.start()
     run_database.start()
+    run_prometheus.start()
 
     
 

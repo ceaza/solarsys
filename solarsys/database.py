@@ -34,7 +34,8 @@ test_idata = {'gridvoltage': 229.1,
              'batterywatts': 100.4,
              'pvAmps1': 2.0,
              'gridwatts': 931.4000000000001,
-             'SolarWatts': 44.59999999999991}
+             'SolarWatts': 44.59999999999991,
+             'asoc':65.0}
 
 test_bdata = {'addr': 4,
              'cell_volts': (50.053, [3.337, 3.336, 3.337, 3.338, 3.336, 3.338, 3.337, 3.338, 3.337, 3.336, 3.336, 3.336, 3.335, 3.336, 3.34]),
@@ -167,7 +168,7 @@ class DataBase:
         try:
             cur.execute(sql)
             self.con.commit()
-            print('DB Insert:: ',datetime.now())
+            # print('DB Insert:: ',datetime.now())
         except Exception as e:
             logger.error("Database error: %s on table %s", e,table)
         
@@ -203,7 +204,7 @@ class DataBase:
             self.write_data('BATTERY',sdict)
         else:
             pass
-            print('Nothing')
+            #print('Nothing')
         
 if __name__ == '__main__':
     if 0:
@@ -212,13 +213,25 @@ if __name__ == '__main__':
         sql = "SELECT name FROM sqlite_master WHERE type='table'"
         print(cur.execute(sql).fetchall())
         
-    if 1:
+    if 0:
         import pandas as pd
         db = DataBase()
         cur = db.con.cursor()
         db._create_main_itable(cur)
         db._create_btable(cur)
-        db.con.commit()        
+        db.con.commit()
+        
+        
+    if 1:
+        db = DataBase()
+        cur = db.con.cursor()
+        sql = f"ALTER TABLE MAIN_INVERTER ADD asoc REAL "
+        print(sql)
+        cur.execute(sql)
+        db.con.commit()
+        db.con.close()
+        
+        
 
     if 0:
         db = DataBase()

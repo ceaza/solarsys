@@ -31,7 +31,7 @@ class Axpert:
         #print(string)
         conn.request("GET",string)
         response = conn.getresponse()
-        print(response)
+        # print(response)
         conn.close()
 
     def send_all_data(self,ddict):
@@ -121,7 +121,7 @@ class Axpert:
                 
         elif command == 'QPIRI':
             res = res[1:].split()
-            print(res)
+            # print(res)
             if len(res) < 10:
                 send_dict['response']='NAK'
             else:
@@ -211,7 +211,7 @@ class Axpert:
             self.fd = os.open(self.device,os.O_RDWR)
             
         command = str.encode(command)
-        print(command)
+        # print(command)
         crc = self.calc_crc(command)
         fcall = command + crc + b'\r'
         os.write(self.fd, fcall)
@@ -227,7 +227,7 @@ class Axpert:
 
     def run(self,command='QPIGS',non_block=False):
         res = self.submit_command_and_receive(command,non_block=non_block)
-        print(res)
+        # print(res)
         send_dict = self.read_response(res,command)
         # if command=='QPIGS':
         #    self.send_all_data(send_dict)
@@ -241,7 +241,7 @@ class Axpert:
         '''
         # command = 'QPIGS'
         command = str.encode(command)
-        print(command)
+        # print(command)
         crc = self.calc_crc(command)
         fcall = command + crc + b'\r'
         full_command = fcall 
